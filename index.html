@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pesapal Sandbox Test</title>
+<style>
+  :root { --accent:#2563eb; --muted:#64748b; --border:#e2e8f0; }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; padding:24px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg,#0f172a,#1e293b);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .card {
+    background:#fff; width:100%; max-width:420px; border-radius:16px;
+    padding:32px; box-shadow:0 24px 60px rgba(0,0,0,.35);
+  }
+  h1 { margin:0 0 6px; font-size:22px; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:24px; }
+  label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#334155; }
+  input, select {
+    width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:9px;
+    font-size:15px; margin-bottom:16px; outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.15); }
+  button {
+    width:100%; padding:13px; border:0; border-radius:9px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:600;
+    cursor:pointer; transition:background .15s, opacity .15s;
+  }
+  button:hover:not(:disabled) { background:#1d4ed8; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  .error {
+    display:none; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca;
+    padding:10px 12px; border-radius:8px; font-size:13px; margin-bottom:16px;
+  }
+  .row { display:flex; gap:12px; }
+  .row > * { flex:1; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Pesapal Sandbox Test</h1>
+    <div class="sub">Enter a test payment and you will be redirected to Pesapal.</div>
+
+    <div class="error" id="error"></div>
+
+    <form id="payForm">
+      <label for="amount">Amount</label>
+      <div class="row">
+        <input id="amount" name="amount" type="number" min="1" step="1" value="100" required />
+        <select id="currency" name="currency">
+          <option value="KES" selected>KES</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" placeholder="you@example.com" required />
+
+      <label for="phone">Phone</label>
+      <input id="phone" name="phone" type="tel" placeholder="254712345678" required />
+
+      <button type="submit" id="submitBtn">Pay with Pesapal</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('payForm');
+    const btn = document.getElementById('submitBtn');
+    const errorBox = document.getElementById('error');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Redirecting to Pesapal...';
+
+      const payload = {
+        amount: document.getElementById('amount').value,
+        currency: document.getElementById('currency').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+      };
+
+      try {
+        const res = await fetch('/api/pesapal/pay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.redirect_url) {
+          throw new Error(
+            (data.error && (data.error.message || data.error)) || 'Order submission failed'
+          );
+        }
+        window.location.href = data.redirect_url;
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Pay with Pesapal';
+      }
+    });
+  </script>
+</body>
+</html>
